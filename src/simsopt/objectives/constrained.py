@@ -206,6 +206,7 @@ class ConstrainedProblem(Optimizable):
             if self.first_eval_obj:
                 self.first_eval_obj = False
 
+
             return self.objective_cache
         else:
             return self.objective_cache
