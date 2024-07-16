@@ -4,7 +4,7 @@ import os
 import numpy as np
 from simsopt.mhd import Vmec, QuasisymmetryRatioResidual
 from simsopt.objectives import ConstrainedProblem, LeastSquaresProblem
-from simsopt.solve.mpi import global_mpi_solve
+from simsopt.solve.mpi import global_mpi_solve, least_squares_mpi_solve
 from simsopt.util import MpiPartition, proc0_print
 from simsopt._core import Optimizable
 
@@ -43,8 +43,8 @@ qs = QuasisymmetryRatioResidual(vmec,
 # Define objective function
 
 
-objprob = LeastSquaresProblem.from_tuples([(vmec.aspect, 6, 1), (vmec.mean_iota, 0.41, 1), (qs.residuals, 0, 1)])
-prob = ConstrainedProblem(objprob.objective)
+prob = LeastSquaresProblem.from_tuples([(vmec.aspect, 6, 1), (vmec.mean_iota, 0.41, 1), (qs.residuals, 0, 1)])
+#prob = ConstrainedProblem(objprob.objective)
 
 # Fourier modes of the boundary with m <= max_mode and |n| <= max_mode
 # will be varied in the optimization. A larger range of modes are
@@ -72,14 +72,14 @@ for step in range(3):
         
     surf.fix("rc(0,0)")  # Major radius
 
-    print("Right Before Global Run")
 
     # For the test to run quickly, we stop after the first function
     # evaluation, by passing max_nfev=1 to scipy.optimize. For a
     # "real" optimization, remove the max_nfev parameter below.
     #least_squares_mpi_solve(prob, mpi, grad=True)
-    #diff_ev, shg, dual_ann, direct
-    global_mpi_solve(prob, mpi, opt_method="dual_ann")
+    #diff_ev, shg, dual_ann, direct, pdfo
+    #global_mpi_solve(prob, mpi, opt_method="pdfo")
+    least_squares_mpi_solve(prob, mpi)
 
     # Preserve the output file from the last iteration, so it is not
     # deleted when vmec runs again:

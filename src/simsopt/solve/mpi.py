@@ -16,6 +16,7 @@ import traceback
 import numpy as np
 from scipy.optimize import least_squares, minimize, dual_annealing, shgo, direct, differential_evolution
 from scipy.optimize import NonlinearConstraint, LinearConstraint
+from pdfo import pdfo
 
 try:
     from mpi4py import MPI
@@ -708,6 +709,8 @@ def global_mpi_solve(prob: ConstrainedProblem,
                         result = dual_annealing(_f_proc0, bounds, x0=x0)
                     case "direct":
                         result = direct(_f_proc0, bounds)
+                    case "pdfo":
+                        result = pdfo(_f_proc0, x0, bounds=bounds)
 
     else:
 
@@ -734,6 +737,8 @@ def global_mpi_solve(prob: ConstrainedProblem,
                     result = dual_annealing(_f_proc0, bounds, x0=x0, maxfun=20)
                 case "direct":
                     result = direct(_f_proc0, bounds)
+                case "pdfo":
+                    result = pdfo(_f_proc0, x0, bounds=bounds)
 
         # Stop loops for workers and group leaders:
         mpi.together()
