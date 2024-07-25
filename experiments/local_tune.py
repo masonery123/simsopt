@@ -53,44 +53,45 @@ prob = LeastSquaresProblem.from_tuples([(vmec.aspect, 6, 1), (vmec.mean_iota, 0.
 # Fourier modes of the boundary with m <= max_mode and |n| <= max_mode
 # will be varied in the optimization. A larger range of modes are
 # included in the VMEC and booz_xform calculations.
-for step in range(3):
-    max_mode = step + 1
+#for step in range(3):
+endStep = 2
+max_mode = 1 + endStep
 
-    # VMEC's mpol & ntor will be 3, 4, 5:
-    vmec.indata.mpol = 3 + step
-    vmec.indata.ntor = vmec.indata.mpol
+# VMEC's mpol & ntor will be 3, 4, 5:
+vmec.indata.mpol = 3 + endStep
+vmec.indata.ntor = vmec.indata.mpol
 
-    proc0_print("Beginning optimization with max_mode =", max_mode, \
-                ", vmec mpol=ntor=", vmec.indata.mpol, \
-                ". Previous vmec iteration = ", vmec.iter)
+proc0_print("Beginning optimization with max_mode =", max_mode, \
+            ", vmec mpol=ntor=", vmec.indata.mpol, \
+            ". Previous vmec iteration = ", vmec.iter)
 
-    # Define parameter space:
-    #constraintSize = 0.4
-    surf.fix_all()
-    surf.fixed_range(mmin=0, mmax=max_mode, 
-                     nmin=-max_mode, nmax=max_mode, fixed=False)
+# Define parameter space:
+#constraintSize = 0.4
+surf.fix_all()
+surf.fixed_range(mmin=0, mmax=max_mode, 
+                    nmin=-max_mode, nmax=max_mode, fixed=False)
+
+'''for dof in surf.local_dof_names:
+    print(dof)
+    print(int(dof[3]))
+    print(surf.get(key=dof))
+    surf.set_lower_bound(key=dof, new_val=surf.get(key=dof) - constraintSize / (2 ** int(dof[3])))
+    surf.set_upper_bound(key=dof, new_val=surf.get(key=dof) + constraintSize / (2 ** int(dof[3])))'''
     
-    '''for dof in surf.local_dof_names:
-        print(dof)
-        print(int(dof[3]))
-        print(surf.get(key=dof))
-        surf.set_lower_bound(key=dof, new_val=surf.get(key=dof) - constraintSize / (2 ** int(dof[3])))
-        surf.set_upper_bound(key=dof, new_val=surf.get(key=dof) + constraintSize / (2 ** int(dof[3])))'''
-        
-    surf.fix("rc(0,0)")  # Major radius
+surf.fix("rc(0,0)")  # Major radius
 
-    # For the test to run quickly, we stop after the first function
-    # evaluation, by passing max_nfev=1 to scipy.optimize. For a
-    # "real" optimization, remove the max_nfev parameter below.
-    #least_squares_mpi_solve(prob, mpi, grad=True)
-    least_squares_mpi_solve(prob, mpi)
+# For the test to run quickly, we stop after the first function
+# evaluation, by passing max_nfev=1 to scipy.optimize. For a
+# "real" optimization, remove the max_nfev parameter below.
+#least_squares_mpi_solve(prob, mpi, grad=True)
+least_squares_mpi_solve(prob, mpi)
 
-    # Preserve the output file from the last iteration, so it is not
-    # deleted when vmec runs again:
-    vmec.files_to_delete = []
+# Preserve the output file from the last iteration, so it is not
+# deleted when vmec runs again:
+vmec.files_to_delete = []
 
-    proc0_print(f"Done optimization with max_mode ={max_mode}. "
-                f"Final vmec iteration = {vmec.iter}")
+proc0_print(f"Done optimization with max_mode ={max_mode}. "
+            f"Final vmec iteration = {vmec.iter}")
 
 proc0_print("Good bye")
 

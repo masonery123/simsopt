@@ -7,6 +7,7 @@ from simsopt.objectives import ConstrainedProblem, LeastSquaresProblem
 from simsopt.solve.mpi import global_mpi_solve, least_squares_mpi_solve
 from simsopt.util import MpiPartition, proc0_print
 from simsopt._core import Optimizable
+import matplotlib.pyplot as plt
 
 """
 This example shows how scripting can be used to increase the size
@@ -31,7 +32,7 @@ mpi = MpiPartition()
 mpi.write()
 
 filename = os.path.join(os.path.dirname(__file__), 'inputs', 'input.nfp2_QA')
-vmec = Vmec(filename, mpi=mpi)
+vmec = Vmec(filename, mpi=mpi, verbose=False)
 vmec.verbose = mpi.proc0_world
 surf = vmec.boundary
 
@@ -43,12 +44,14 @@ qs = QuasisymmetryRatioResidual(vmec,
 # Define objective function
 
 
-prob = LeastSquaresProblem.from_tuples([(vmec.aspect, 6, 1), (vmec.mean_iota, 0.41, 1), (qs.residuals, 0, 1)])
-#prob = ConstrainedProblem(objprob.objective)
+objprob = LeastSquaresProblem.from_tuples([(vmec.aspect, 6, 1), (vmec.mean_iota, 0.41, 1), (qs.residuals, 0, 1)])
+prob = ConstrainedProblem(objprob.objective)
 
 # Fourier modes of the boundary with m <= max_mode and |n| <= max_mode
 # will be varied in the optimization. A larger range of modes are
 # included in the VMEC and booz_xform calculations.
+objectiveValues = []
+
 for step in range(3):
     max_mode = step + 1
 
@@ -78,8 +81,10 @@ for step in range(3):
     # "real" optimization, remove the max_nfev parameter below.
     #least_squares_mpi_solve(prob, mpi, grad=True)
     #diff_ev, shg, dual_ann, direct, pdfo
-    #global_mpi_solve(prob, mpi, opt_method="pdfo")
-    least_squares_mpi_solve(prob, mpi)
+    objectiveValues.append(global_mpi_solve(prob, mpi, opt_method="pdfo"))#, options={"ftarget" : 0.1/(1.1**step)})
+
+
+    
 
     # Preserve the output file from the last iteration, so it is not
     # deleted when vmec runs again:
@@ -87,6 +92,29 @@ for step in range(3):
 
     proc0_print(f"Done optimization with max_mode ={max_mode}. "
                 f"Final vmec iteration = {vmec.iter}")
+    
+oldNumIters = 0
+f = open("objectiveStore.txt", "w")
+f.write("List of objective values: \n")
+for obj in objectiveValues:
+    numIters = len(obj) + oldNumIters
+    iterAxis = range(oldNumIters, numIters)
+    print(obj)
+    print(len(iterAxis))
+    print(len(obj))
+    oldNumIters = numIters
+    plt.plot(iterAxis, obj)
+    f.write("[" + str(obj[0]))
+    for val in obj[1:]:
+        f.write(",")
+        f.write(str(val))
+    f.write("]\n")
+
+f.close()
+
+plt.show()
+
+
 
 proc0_print("Good bye")
 

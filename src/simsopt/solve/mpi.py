@@ -702,15 +702,15 @@ def global_mpi_solve(prob: ConstrainedProblem,
                 
                 match opt_method:
                     case "diff_ev":
-                        result = differential_evolution(_f_proc0, bounds, x0=x0)
+                        result = differential_evolution(_f_proc0, bounds, x0=x0, options=options)
                     case "shg":
-                        result = shgo(_f_proc0, bounds)
+                        result = shgo(_f_proc0, bounds, options=options)
                     case "dual_ann":
-                        result = dual_annealing(_f_proc0, bounds, x0=x0)
+                        result = dual_annealing(_f_proc0, bounds, x0=x0, options=options)
                     case "direct":
-                        result = direct(_f_proc0, bounds)
+                        result = direct(_f_proc0, bounds, options=options)
                     case "pdfo":
-                        result = pdfo(_f_proc0, x0, bounds=bounds)
+                        result = pdfo(_f_proc0, x0, bounds=bounds, options=options)
 
     else:
 
@@ -728,17 +728,16 @@ def global_mpi_solve(prob: ConstrainedProblem,
             logger.info("Using derivative-free method")
             match opt_method:
                 case "diff_ev":
-                    result = differential_evolution(_f_proc0, bounds, x0=x0)
+                    result = differential_evolution(_f_proc0, bounds, x0=x0, options=options)
                 case "shg":
-                    print("Before shg call")
-                    result = shgo(_f_proc0, bounds, options={"maxfev" : 1})
+                    result = shgo(_f_proc0, bounds, options=options)
                 case "dual_ann":
                     print("Before dual_ann call")
-                    result = dual_annealing(_f_proc0, bounds, x0=x0, maxfun=20)
+                    result = dual_annealing(_f_proc0, bounds, x0=x0, options=options)
                 case "direct":
-                    result = direct(_f_proc0, bounds)
+                    result = direct(_f_proc0, bounds, options=options)
                 case "pdfo":
-                    result = pdfo(_f_proc0, x0, bounds=bounds)
+                    result = pdfo(_f_proc0, x0, bounds=bounds, options=options)
 
         # Stop loops for workers and group leaders:
         mpi.together()
@@ -757,3 +756,9 @@ def global_mpi_solve(prob: ConstrainedProblem,
     logger.debug(f'After Bcast, x={x}')
     # Set Parameters to their values for the optimum
     prob.x = x
+
+    if mpi.proc0_world:
+        if opt_method == "shg":
+            return result.xl
+        elif opt_method == "pdfo":
+            return result.fun_history
