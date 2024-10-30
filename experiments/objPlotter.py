@@ -1,6 +1,11 @@
 import matplotlib.pyplot as plt
+import sys
 
-objFile = open("objectiveStore.txt", "r")
+if len(sys.argv) != 3:
+    print("Error! You must specify 2 arguments: the objective storage file and the cutoff threshold.")
+    exit(1)
+
+objFile = open(sys.argv[1], "r")
 objFile.readline()
 
 objectiveValues = []
@@ -10,7 +15,7 @@ for line in objFile:
 
 
 oldNumIters = 0
-thresh = 0.2
+thresh = float(sys.argv[2])
 for obj in objectiveValues:
     obj = [min(val, thresh) for val in obj]
     numIters = len(obj) + oldNumIters

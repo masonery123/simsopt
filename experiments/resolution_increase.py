@@ -31,21 +31,24 @@ proc0_print("=============================================")
 mpi = MpiPartition()
 mpi.write()
 
-filename = os.path.join(os.path.dirname(__file__), 'inputs', 'input.nfp2_QA')
+inputString = "nfp4_QH_warm_start"
+
+filename = os.path.join(os.path.dirname(__file__), 'inputs', 'input.' + inputString)
 vmec = Vmec(filename, mpi=mpi, verbose=False)
-vmec.verbose = mpi.proc0_world
+#vmec.verbose = mpi.proc0_world
 surf = vmec.boundary
 
 # Configure quasisymmetry objective:
 qs = QuasisymmetryRatioResidual(vmec,
                                 np.arange(0, 1.01, 0.1),  # Radii to target
-                                helicity_m=1, helicity_n=0)  # (M, N) you want in |B|
+                                helicity_m=1, helicity_n=-1)  # (M, N) you want in |B|
 
 # Define objective function
 
 
-objprob = LeastSquaresProblem.from_tuples([(vmec.aspect, 6, 1), (vmec.mean_iota, 0.41, 1), (qs.residuals, 0, 1)])
-prob = ConstrainedProblem(objprob.objective)
+lsProb = LeastSquaresProblem.from_tuples([(vmec.aspect, 7, 1), (qs.residuals, 0, 1)])
+#, (vmec.mean_iota, -1.1, 1)
+prob = ConstrainedProblem(lsProb.objective)
 
 # Fourier modes of the boundary with m <= max_mode and |n| <= max_mode
 # will be varied in the optimization. A larger range of modes are
@@ -70,8 +73,10 @@ for step in range(3):
                      nmin=-max_mode, nmax=max_mode, fixed=False)
     
     for dof in surf.local_dof_names:
+        constraintSize = 0.2 if dof[5] == "1" else 0.1
         surf.set_lower_bound(key=dof, new_val=surf.get(key=dof) - constraintSize / (1.5 ** int(dof[3])))
         surf.set_upper_bound(key=dof, new_val=surf.get(key=dof) + constraintSize / (1.5 ** int(dof[3])))
+
         
     surf.fix("rc(0,0)")  # Major radius
 
@@ -79,7 +84,7 @@ for step in range(3):
     # For the test to run quickly, we stop after the first function
     # evaluation, by passing max_nfev=1 to scipy.optimize. For a
     # "real" optimization, remove the max_nfev parameter below.
-    #least_squares_mpi_solve(prob, mpi, grad=True)
+    #least_squares_mpi_solve(lsProb, mpi, grad=True)
     #diff_ev, shg, dual_ann, direct, pdfo
     objectiveValues.append(global_mpi_solve(prob, mpi, opt_method="pdfo"))#, options={"ftarget" : 0.1/(1.1**step)})
 
@@ -94,7 +99,7 @@ for step in range(3):
                 f"Final vmec iteration = {vmec.iter}")
     
 oldNumIters = 0
-f = open("objectiveStore.txt", "w")
+f = open("objs_" + inputString + "_" + str(vmec.iter) + ".txt", "w")
 f.write("List of objective values: \n")
 for obj in objectiveValues:
     numIters = len(obj) + oldNumIters

@@ -22,6 +22,7 @@ quasisymmetries = ['Quasisymmetry']
 aspects = ['Aspect']
 iotas = ['Iota']
 iters = ['Iterations']
+objectives = ['Objectives']
 
 for filename in sys.argv[1:]:
     vmecs.append(Vmec(filename, verbose=False))
@@ -35,8 +36,10 @@ for vmec in vmecs:
     quasisymmetries.append(qs.total())
     aspects.append(vmec.aspect())
     iotas.append(vmec.mean_iota())
+    prob = LeastSquaresProblem.from_tuples([(vmec.aspect, 6, 1), (vmec.mean_iota, 0.41, 1), (qs.residuals, 0, 1)])
+    objectives.append(prob.objective())
 
-print(tabulate([iters, quasisymmetries, aspects, iotas], headers=headers))
+print(tabulate([iters, quasisymmetries, aspects, iotas, objectives], headers=headers))
 
 
 
